@@ -21,8 +21,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       - name: Commit report if changed
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "Abhishek K"
+          git config --global user.email "abhi23kk@gmail.com"
           git add reports/
           git diff --cached --quiet || (git commit -m "Add daily RepoMind AI report" && git push)
 
