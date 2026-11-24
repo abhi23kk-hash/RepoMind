@@ -1,28 +1,51 @@
-﻿name: RepoMind AI Daily Discovery
+
+name: RepoMind AI Daily Discovery
+
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '15 8 * * *'
+    # 11:00 AM IST
+    - cron: '30 5 * * *'
+
+    # 5:00 PM IST
+    - cron: '30 11 * * *'
+
+  workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   discover:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install -r requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
       - name: Discover and analyze repositories
         run: python repomind.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
       - name: Commit report if changed
         run: |
-          git config --global user.name "Abhishek K"
-          git config --global user.email "abhi23kk@gmail.com"
+          git config user.name "Abhishek K"
+          git config user.email "abhi23kk@gmail.com"
           git add reports/
-          git diff --cached --quiet || (git commit -m "Add daily RepoMind AI report" && git push)
-
+          if ! git diff --cached --quiet; then
+            git commit -m "Update daily RepoMind AI report"
+            git push
+          else
+            echo "No new report changes to commit."
+          fi
