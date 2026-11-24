@@ -48,7 +48,7 @@ def gemini_analysis(repositories):
         url, params={"key": key},
         json={"contents": [{"parts": [{"text": prompt}]}],
               "generationConfig": {"temperature": 0.3}},
-        timeout=60,
+        timeout=(15, 180),
     )
     response.raise_for_status()
     data = response.json()
@@ -82,5 +82,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
