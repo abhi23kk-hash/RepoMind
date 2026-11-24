@@ -6,7 +6,7 @@ from pathlib import Path
 import requests
 
 GITHUB_API = "https://api.github.com/search/repositories"
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.8-flash"
 
 def discover_repositories():
     headers = {"Accept": "application/vnd.github+json"}
@@ -82,4 +82,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
