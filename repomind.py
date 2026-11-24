@@ -23,37 +23,59 @@ def discover_repositories():
     response.raise_for_status()
     return response.json().get("items", [])
 
+
 def gemini_analysis(repositories):
+    import time
+
     key = os.getenv("GEMINI_API_KEY")
     if not key:
-        return "Gemini analysis skipped: set the GEMINI_API_KEY repository secret to enable it."
+        return "Gemini analysis skipped: GEMINI_API_KEY is not configured."
+
     items = [{
         "name": r["full_name"],
-        "description": r.get("description"),
+        "description": (r.get("description") or "")[:250],
         "language": r.get("language"),
         "stars": r.get("stargazers_count"),
         "url": r["html_url"],
-        "topics": r.get("topics", []),
-    } for r in repositories]
+        "topics": r.get("topics", [])[:5],
+    } for r in repositories[:10]]
+
     prompt = (
-        "Analyze these GitHub repositories for a developer audience. "
-        "Return concise Markdown with: 1) three notable trends, "
-        "2) five repositories worth exploring and why, "
-        "3) technologies appearing frequently, and 4) one learning suggestion. "
-        "Do not invent facts; use only supplied data.\n\n"
+        "Analyze these GitHub repositories. Give a concise Markdown report "
+        "with three technology trends, five interesting repositories, "
+        "their technologies, and one learning recommendation. "
+        "Use only the supplied facts.\n\n"
         + json.dumps(items, ensure_ascii=False)
     )
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
-    response = requests.post(
-        url, params={"key": key},
-        json={"contents": [{"parts": [{"text": prompt}]}],
-              "generationConfig": {"temperature": 0.3}},
-        timeout=(15, 180),
-    )
-    response.raise_for_status()
-    data = response.json()
-    return data["candidates"][0]["content"]["parts"][0]["text"]
 
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+
+    for attempt in range(3):
+        try:
+            response = requests.post(
+                url,
+                params={"key": key},
+                json={
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {
+                        "temperature": 0.3,
+                        "maxOutputTokens": 1200
+                    }
+                },
+                timeout=(15, 120)
+            )
+            response.raise_for_status()
+            return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+
+        except requests.exceptions.RequestException as error:
+            print(f"Gemini attempt {attempt + 1} failed: {error}")
+            if attempt < 2:
+                time.sleep(10 * (attempt + 1))
+
+    return (
+        "Gemini analysis temporarily unavailable after three attempts. "
+        "The repository discovery data is still available above."
+    )
 def main():
     repos = discover_repositories()
     now = datetime.now(timezone.utc)
